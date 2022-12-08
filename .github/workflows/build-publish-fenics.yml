@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Create and publish a Docker image
+name: Create and publish a Docker image for sub-directory
 
 on:
   workflow_dispatch:
@@ -13,12 +13,11 @@ on:
         default: "latest"
         type: string
       image_name:
-         description: "Name of docker image"
+         description: "Subdirectory of package"
          default: "fenics"
          type: string
 env:
   REGISTRY: ghcr.io
-  DOCKER_PATH: fenics/Dockerfile
 
 jobs:
   build-and-push-image:
@@ -53,12 +52,11 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
           push: true
           platforms: linux/amd64 #,linux/arm64
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ env.DOCKER_PATH }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
           cache-to: type=inline
 
