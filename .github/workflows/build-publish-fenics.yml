@@ -53,7 +53,7 @@ jobs:
             org.opencontainers.image.source=${{ github.GITHUB_SERVER_URL }}/${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
           images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
           tags: |
-            type=raw|value=${{ github.event.inputs.release_tag }}
+            type=raw,value=${{ github.event.inputs.release_tag }}
 
       # - name: Build and push Docker image
       #   uses: docker/build-push-action@v3
