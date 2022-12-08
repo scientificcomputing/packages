@@ -56,9 +56,9 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64 #,linux/arm64
-          tags: ${{ github.event.inputs.release_tag }}
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ env.DOCKER_PATH }}
-          cache-from: type=registry,ref=${{ github.event.inputs.release_tag }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
           cache-to: type=inline
 
