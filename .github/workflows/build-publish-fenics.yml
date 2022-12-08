@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Create and publish a Docker image
+name: Create and publish a Docker image for sub-directory
 
 on:
   workflow_dispatch:
@@ -13,12 +13,15 @@ on:
         default: "latest"
         type: string
       image_name:
-         description: "Name of docker image"
+         description: "Subdirectory of package"
          default: "fenics"
+         type: string
+      image_description:
+         description: "Description of package"
+         default: ""
          type: string
 env:
   REGISTRY: ghcr.io
-  DOCKER_PATH: fenics/Dockerfile
 
 jobs:
   build-and-push-image:
@@ -48,17 +51,22 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4.1.1
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.inputs.image_name }}
+            org.opencontainers.image.description=${{ github.event.inputs.image_description }}
+
+          images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.release_tag }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
           push: true
           platforms: linux/amd64 #,linux/arm64
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ env.DOCKER_PATH }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
           cache-to: type=inline
 
