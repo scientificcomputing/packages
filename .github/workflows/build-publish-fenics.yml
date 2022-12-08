@@ -59,14 +59,14 @@ jobs:
           tags: |
             type=raw,value=${{ github.event.inputs.release_tag }}
 
-      # - name: Build and push Docker image
-      #   uses: docker/build-push-action@v3
-      #   with:
-      #     context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
-      #     push: true
-      #     platforms: linux/amd64 #,linux/arm64
-      #     tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
-      #     cache-to: type=inline
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
+          push: true
+          platforms: linux/amd64 #,linux/arm64
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
+          cache-to: type=inline
 
