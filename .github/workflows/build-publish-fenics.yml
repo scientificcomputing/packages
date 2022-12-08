@@ -47,16 +47,22 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4.1.1
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.inputs.image_name }}
+            org.opencontainers.image.url=${{ GITHUB_SERVER_URL }}/${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
+            org.opencontainers.image.source=${{ GITHUB_SERVER_URL }}/${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
+          images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
+          tags: |
+            type=raw|value=${{ github.event.inputs.release_tag }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
-          push: true
-          platforms: linux/amd64 #,linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
-          cache-to: type=inline
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
+      #     push: true
+      #     platforms: linux/amd64 #,linux/arm64
+      #     tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}
+      #     labels: ${{ steps.meta.outputs.labels }}
+      #     cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
+      #     cache-to: type=inline
 
