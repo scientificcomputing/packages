@@ -16,6 +16,10 @@ on:
          description: "Subdirectory of package"
          default: "fenics"
          type: string
+      image_description:
+         description: "Description of package"
+         default: ""
+         type: string
 env:
   REGISTRY: ghcr.io
 
@@ -49,8 +53,8 @@ jobs:
         with:
           labels: |
             org.opencontainers.image.title=${{ github.event.inputs.image_name }}
-            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}/${{ github.event.inputs.image_name }}
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}/${{ github.event.inputs.image_name }}
+            org.opencontainers.image.description=${{ github.event.inputs.image_description }}
+
           images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
           tags: |
             type=raw,value=${{ github.event.inputs.release_tag }}
