@@ -59,6 +59,6 @@ jobs:
           tags: ${{ github.event.inputs.release_tag }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ env.DOCKER_PATH }}
-          cache-from: type=registry,ref=${{ steps.meta.outputs.release_tag }}
+          cache-from: type=registry,ref=${{ github.event.inputs.release_tag }}
           cache-to: type=inline
 
