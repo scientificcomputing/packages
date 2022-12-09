@@ -1,0 +1,49 @@
+version: 2.1
+
+parameters:
+  release_tag:
+    description: "Name of release tag (-arm will be added)"
+    default: ""
+    type: string
+  image_name:
+    description: "Subdirectory of package"
+    default: "fenics"
+    type: string
+  image_description:
+    description: "Description of package"
+    default: ""
+    type: string
+  prefix:
+    type: string
+    default: "ghcr.io/scientificcomputing/"
+
+jobs:
+  docker-build-arm:
+    machine:
+      image: ubuntu-2004:2022.04.1
+    resource_class: arm.medium
+
+    steps:
+      - checkout
+      - run:
+          command: |
+            if [ ! -z "${DOCKER_USERNAME}" ]; then
+              echo ${DOCKER_PASSWORD} | docker login ghcr.io -u ${DOCKER_USERNAME} --password-stdin
+            fi
+
+      - run:
+          command: |
+            DOCKER_ARGS="--platform linux/arm64"
+            if [ ! -z "${DOCKER_USERNAME}" ]; then
+              DOCKER_ARGS="${DOCKER_ARGS} --push"
+            fi
+            docker buildx build \
+              ${DOCKER_ARGS} \
+              --tag "<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>-arm" \
+              "<< pipeline.parameters.image_name >>"
+
+workflows:
+  build-arm:
+    when: << pipeline.parameters.release_tag >>
+    jobs:
+      - docker-build-arm
