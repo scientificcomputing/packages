@@ -1,39 +1,49 @@
 version: 2.1
 
+parameters:
+  release_tag:
+    description: "Name of release tag (-arm will be added)"
+    default: ""
+    type: string
+  image_name:
+    description: "Subdirectory of package"
+    default: "test"
+    type: string
+  image_description:
+    description: "Description of package"
+    default: ""
+    type: string
+  prefix:
+    type: string
+    default: "ghcr.io/scientificcomputing/packages/"
+
 jobs:
   docker-build-arm:
-    parameters:
-      # name: the name of the folder, which will be the name of the image
-      image_name:
-        type: string
-      # suffix added, to avoid collisions without multi-arch builds
-      image_suffix:
-        type: string
-        default: "-arm"
-      # image repo prefix
-      prefix:
-        type: string
-        default: "ghcr.io/scientificcomputing/packages/"
-      tag:
-        type: string
-        default: "latest"
-
     machine:
       image: ubuntu-2004:2022.04.1
     resource_class: arm.medium
-
 
     steps:
       - checkout
       - run:
           command: |
-            docker buildx build  \
-              --platform linux/arm64  \
-              --tag "<< parameters.prefix >><< parameters.image_name >><< parameters.image_suffix >>:<< parameters.tag >>" \
-              "<< parameters.image_name >>"
+            if [ ! -z "${DOCKER_USERNAME}" ]; then
+              echo ${DOCKER_PASSWORD} | docker login ghcr.io -u ${DOCKER_USERNAME} --password-stdin
+            fi
+
+      - run:
+          command: |
+            DOCKER_ARGS="--platform linux/arm64"
+            if [ ! -z "${DOCKER_USERNAME}" ]; then
+              DOCKER_ARGS="${DOCKER_ARGS} --push"
+            fi
+            docker buildx build \
+              ${DOCKER_ARGS} \
+              --tag "<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>-arm" \
+              "<< pipeline.parameters.image_name >>"
 
 workflows:
-  test:
+  build-arm:
+    when: << pipeline.parameters.release_tag >>
     jobs:
-      - docker-build-arm:
-          image_name: test
+      - docker-build-arm
