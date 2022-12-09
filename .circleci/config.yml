@@ -7,7 +7,7 @@ parameters:
     type: string
   image_name:
     description: "Subdirectory of package"
-    default: "test"
+    default: "fenics"
     type: string
   image_description:
     description: "Description of package"
