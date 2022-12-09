@@ -1,0 +1,39 @@
+version: 2.1
+
+jobs:
+  docker-build-arm:
+    parameters:
+      # name: the name of the folder, which will be the name of the image
+      image_name:
+        type: string
+      # suffix added, to avoid collisions without multi-arch builds
+      image_suffix:
+        type: string
+        default: "-arm"
+      # image repo prefix
+      prefix:
+        type: string
+        default: "ghcr.io/scientificcomputing/packages/"
+      tag:
+        type: string
+        default: "latest"
+
+    machine:
+      image: ubuntu-2004:2022.04.1
+    resource_class: arm.medium
+
+
+    steps:
+      - checkout
+      - run:
+          command: |
+            docker buildx build  \
+              --platform linux/arm64  \
+              --tag "<< parameters.prefix >><< parameters.image_name >><< parameters.image_suffix >>:<< parameters.tag >>" \
+              "<< parameters.image_name >>"
+
+workflows:
+  test:
+    jobs:
+      - docker-build-arm:
+          image_name: test
