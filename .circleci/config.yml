@@ -32,17 +32,30 @@ jobs:
             fi
 
       - run:
+          name: set environment variables
           command: |
-            DOCKER_ARGS="--platform linux/arm64"
-            if [ ! -z "${DOCKER_USERNAME}" ]; then
-              DOCKER_ARGS="${DOCKER_ARGS} --push"
-            fi
+            echo 'export IMAGE="<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>"' >> "$BASH_ENV"
+      - run:
+          command: |
             docker buildx build \
-              ${DOCKER_ARGS} \
+              --platform linux/arm64 \
               --label org.opencontainers.image.title="<< pipeline.parameters.image_name >>" \
               --label org.opencontainers.image.description="<< pipeline.parameters.image_description >>" \
-              --tag "<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>-arm" \
+              --tag "arm-build" \
               "<< pipeline.parameters.image_name >>"
+
+      - run:
+          name: wait for amd64 manifest to be pushed
+          command: |
+            while true; do
+              docker manifest inspect $IMAGE && break || sleep 10
+            done
+
+      - run:
+          name: merge manifests to publish multi-arch build
+          command: |
+            docker manifest create "$IMAGE" --amend "$IMAGE" --amend arm-build
+            docker manifest push "$IMAGE"
 
 workflows:
   build-arm:
