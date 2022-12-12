@@ -59,6 +59,15 @@ jobs:
           tags: |
             type=raw,value=${{ github.event.inputs.release_tag }}
 
+      - name: Trigger circleci build for ARM
+        run: |
+          curl \
+            --request POST \
+            --url https://circleci.com/api/v2/project/github/scientificcomputing/packages/pipeline \
+            -u "${{ secrets.CIRCLECI_TOKEN }}:" \
+            --header "Content-Type: application/json" \
+            --data '{ "parameters": ${{ toJSON(github.event.inputs) }} }'
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
@@ -69,4 +78,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
           cache-to: type=inline
-
