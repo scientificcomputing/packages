@@ -39,6 +39,8 @@ jobs:
             fi
             docker buildx build \
               ${DOCKER_ARGS} \
+              --label org.opencontainers.image.title="<< pipeline.parameters.image_name >>" \
+              --label org.opencontainers.image.description="<< pipeline.parameters.image_description >>" \
               --tag "<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>-arm" \
               "<< pipeline.parameters.image_name >>"
 
