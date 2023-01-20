@@ -178,7 +178,7 @@ ENV PETSC_DIR=/usr/local/petsc
 ENV PETSC_ARCH=linux-gnu-real-32
 ENV ENV DEB_PYTHON_INSTALL_LAYOUT=deb_system
 
-RUN git clone --branch ${FIAT_BRANCH} --single-branch  https://github.com/FEniCS/fiat.git && \
+RUN git clone --branch ${FIAT_BRANCH} --single-branch  https://bitbucket.com/fenics-project/fiat.git && \
     git clone --branch ${FFC_BRANCH} --single-branch https://bitbucket.com/fenics-project/ffc.git && \
     git clone --branch ${UFL_BRANCH} --single-branch https://github.com/FEniCS/ufl.git && \
     git clone --branch ${DOLFIN_BRANCH} --single-branch https://bitbucket.com/fenics-project/dolfin.git && \
