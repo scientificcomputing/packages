@@ -2,7 +2,7 @@ version: 2.1
 
 parameters:
   release_tag:
-    description: "Name of release tag (-arm will be added)"
+    description: "Name of release tag"
     default: ""
     type: string
   image_name:
@@ -26,22 +26,30 @@ jobs:
     steps:
       - checkout
       - run:
+          name: docker login
           command: |
             if [ ! -z "${DOCKER_USERNAME}" ]; then
               echo ${DOCKER_PASSWORD} | docker login ghcr.io -u ${DOCKER_USERNAME} --password-stdin
             fi
 
       - run:
+          name: start docker registry
+          command: |
+            docker run -d -p5000:5000 registry:2
+
+
+      - run:
           name: set environment variables
           command: |
             echo 'export IMAGE="<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>"' >> "$BASH_ENV"
       - run:
+          name: docker build
           command: |
             docker buildx build \
               --platform linux/arm64 \
               --label org.opencontainers.image.title="<< pipeline.parameters.image_name >>" \
               --label org.opencontainers.image.description="<< pipeline.parameters.image_description >>" \
-              --tag "arm-build" \
+              --tag "localhost:5000/arm-build" \
               "<< pipeline.parameters.image_name >>"
 
       - run:
@@ -54,7 +62,7 @@ jobs:
       - run:
           name: merge manifests to publish multi-arch build
           command: |
-            docker manifest create "$IMAGE" --amend "$IMAGE" --amend arm-build
+            docker manifest create "$IMAGE" --amend "$IMAGE" --amend localhost:5000/arm-build
             docker manifest push "$IMAGE"
 
 workflows:
