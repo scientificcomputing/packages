@@ -2,7 +2,7 @@ version: 2.1
 
 parameters:
   release_tag:
-    description: "Name of release tag (-arm will be added)"
+    description: "Name of release tag"
     default: ""
     type: string
   image_name:
@@ -23,26 +23,58 @@ jobs:
       image: ubuntu-2004:2022.04.1
     resource_class: arm.medium
 
+    environment:
+      GITHUB_ORG: scientificcomputing
+      ARM_PKG: arm-manifests
+
     steps:
       - checkout
       - run:
+          name: docker login
           command: |
             if [ ! -z "${DOCKER_USERNAME}" ]; then
               echo ${DOCKER_PASSWORD} | docker login ghcr.io -u ${DOCKER_USERNAME} --password-stdin
             fi
 
       - run:
+          name: set environment variables
           command: |
-            DOCKER_ARGS="--platform linux/arm64"
-            if [ ! -z "${DOCKER_USERNAME}" ]; then
-              DOCKER_ARGS="${DOCKER_ARGS} --push"
-            fi
+            echo 'export IMAGE="<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>"' >> "$BASH_ENV"
+            echo 'export ARM_IMAGE="<< pipeline.parameters.prefix >>${ARM_PKG}:<< pipeline.parameters.image_name >>-<< pipeline.parameters.release_tag >>"' >> "$BASH_ENV"
+      - run:
+          name: docker build
+          command: |
             docker buildx build \
-              ${DOCKER_ARGS} \
+              --platform linux/arm64 \
               --label org.opencontainers.image.title="<< pipeline.parameters.image_name >>" \
               --label org.opencontainers.image.description="<< pipeline.parameters.image_description >>" \
-              --tag "<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>-arm" \
+              --tag "${ARM_IMAGE}" \
+              --push \
               "<< pipeline.parameters.image_name >>"
+
+      - run:
+          name: wait for amd64 manifest to be pushed
+          command: |
+            while true; do
+              docker manifest inspect $IMAGE && break || sleep 10
+            done
+
+      - run:
+          name: merge manifests to publish multi-arch build
+          command: |
+            docker manifest create --insecure "$IMAGE" --amend "$IMAGE" --amend "${ARM_IMAGE}"
+            docker manifest push "$IMAGE"
+
+      # deleting manifest doesn't work yet, but at least the temporary arm package is private
+      # - run:
+      #     name: delete temporary github package for arm manifest
+      #     command: |
+      #       curl \
+      #         -X DELETE \
+      #         -H "Accept: application/vnd.github+json" \
+      #         -H "Authorization: Bearer ${DOCKER_PASSWORD}"\
+      #         -H "X-GitHub-Api-Version: 2022-11-28" \
+      #         "https://api.github.com/orgs/${GITHUB_ORG}/packages/container/${ARM_PKG}"
 
 workflows:
   build-arm:
