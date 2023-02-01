@@ -33,12 +33,6 @@ jobs:
             fi
 
       - run:
-          name: start docker registry
-          command: |
-            docker run -d -p5000:5000 registry:2
-
-
-      - run:
           name: set environment variables
           command: |
             echo 'export IMAGE="<< pipeline.parameters.prefix >><< pipeline.parameters.image_name >>:<< pipeline.parameters.release_tag >>"' >> "$BASH_ENV"
@@ -49,7 +43,7 @@ jobs:
               --platform linux/arm64 \
               --label org.opencontainers.image.title="<< pipeline.parameters.image_name >>" \
               --label org.opencontainers.image.description="<< pipeline.parameters.image_description >>" \
-              --tag "localhost:5000/arm-build" \
+              --tag "${IMAGE}-arm" \
               --push \
               "<< pipeline.parameters.image_name >>"
 
@@ -62,9 +56,8 @@ jobs:
 
       - run:
           name: merge manifests to publish multi-arch build
-          # --insecure needed to talk to localhost
           command: |
-            docker manifest create --insecure "$IMAGE" --amend "$IMAGE" --amend localhost:5000/arm-build
+            docker manifest create --insecure "$IMAGE" --amend "$IMAGE" --amend "${IMAGE}-arm"
             docker manifest push "$IMAGE"
 
 workflows:
