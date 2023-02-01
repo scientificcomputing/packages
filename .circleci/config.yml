@@ -50,6 +50,7 @@ jobs:
               --label org.opencontainers.image.title="<< pipeline.parameters.image_name >>" \
               --label org.opencontainers.image.description="<< pipeline.parameters.image_description >>" \
               --tag "localhost:5000/arm-build" \
+              --push \
               "<< pipeline.parameters.image_name >>"
 
       - run:
@@ -61,8 +62,9 @@ jobs:
 
       - run:
           name: merge manifests to publish multi-arch build
+          # --insecure needed to talk to localhost
           command: |
-            docker manifest create "$IMAGE" --amend "$IMAGE" --amend localhost:5000/arm-build
+            docker manifest create --insecure "$IMAGE" --amend "$IMAGE" --amend localhost:5000/arm-build
             docker manifest push "$IMAGE"
 
 workflows:
