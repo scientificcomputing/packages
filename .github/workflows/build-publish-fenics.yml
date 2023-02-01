@@ -61,12 +61,16 @@ jobs:
 
       - name: Trigger circleci build for ARM
         run: |
-          curl \
+          CIRCLE_RESP=$(curl \
             --request POST \
             --url https://circleci.com/api/v2/project/github/scientificcomputing/packages/pipeline \
             -u "${{ secrets.CIRCLECI_TOKEN }}:" \
             --header "Content-Type: application/json" \
             --data '{ "parameters": ${{ toJSON(github.event.inputs) }}, "branch": "${{ github.ref_name }}" }'
+          )
+          echo $CIRCLE_RESP
+
+          echo "[CircleCI Job](https://app.circleci.com/pipelines/github/scientificcomputing/packages/$(echo $CIRCLE_RESP | jq -r .number))" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
