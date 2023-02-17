@@ -1,4 +1,4 @@
-FROM ghcr.io/scientificcomputing/fenics:2023-01-16-arm
+FROM ghcr.io/scientificcomputing/fenics:2023-02-17
 
 # Dependency versions
 ARG GMSH_VERSION=4_11_1
@@ -39,16 +39,17 @@ RUN git clone -b gmsh_${GMSH_VERSION} --single-branch --depth 1 https://gitlab.o
     cmake --install build-dir && \
     rm -rf /tmp/*
 
-# FIXME: Need to make it conditional on the platform. For aarch64 the HDF5_DIR should be
-# /usr/lib/aarch64-linux-gnu/ while on x86_64 it should be /usr/lib/x86_64-linux-gnu
-ENV HDF5_MPI "ON" \
-    HDF5_DIR "/usr/lib/aarch64-linux-gnu/"
-RUN python3 -m pip install --no-cache-dir --no-binary=h5py git+https://github.com/h5py/h5py@master -vvv
+# GMSH installs python package in /usr/local/lib, see: https://gitlab.onelab.info/gmsh/gmsh/-/issues/1414
+RUN export SP_DIR=$(python3 -c 'import sys, site; sys.stdout.write(site.getsitepackages()[0])') \
+ && mv /usr/local/lib/gmsh.py ${SP_DIR}/ \
+ && mv /usr/local/lib/gmsh*.dist-info ${SP_DIR}/
+
+# build h5py from source
+# disable build isolation due to https://github.com/h5py/h5py/issues/2222
+RUN export HDF5_MPI=ON \
+ && export HDF5_PKGCONFIG_NAME="hdf5" \
+ && python3 -m pip install cython pkgconfig mpi4py \
+ && python3 -m pip install --no-cache-dir --no-binary=h5py --no-build-isolation h5py -vv
 RUN python3 -m pip install --no-cache-dir meshio
 
-# GMSH installs python library in /usr/local/lib, see: https://gitlab.onelab.info/gmsh/gmsh/-/issues/1414
-ENV PYTHONPATH=/usr/local/lib:$PYTHONPATH
-ENV LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-
-WORKDIR /root
-RUN rm -rf /src
+WORKDIR /
