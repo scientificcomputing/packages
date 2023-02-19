@@ -2,7 +2,6 @@ FROM ghcr.io/scientificcomputing/fenics:2023-02-17
 
 # Dependency versions
 ARG GMSH_VERSION=4_11_1
-ARG OCC_VERSION=7_7_0
 
 WORKDIR /tmp
 
@@ -25,6 +24,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 
 
 # Install OpenCASACADE
+# OpenCASACADE is currently installed via apt, but the following lines
+# would be way to install this from source in case this is needed later
+# ARG OCC_VERSION=7_7_0
 # RUN curl -L -o occt.tgz "http://git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=refs/tags/V${OCC_VERSION};sf=tgz" && \
 #     tar zxf occt.tgz && \
 #     cmake -G Ninja -DBUILD_MODULE_Draw:BOOL=FALSE -DCMAKE_BUILD_TYPE=Release -B build-occt -S occt-V${OCC_VERSION} && \
@@ -41,15 +43,15 @@ RUN git clone -b gmsh_${GMSH_VERSION} --single-branch --depth 1 https://gitlab.o
 
 # GMSH installs python package in /usr/local/lib, see: https://gitlab.onelab.info/gmsh/gmsh/-/issues/1414
 RUN export SP_DIR=$(python3 -c 'import sys, site; sys.stdout.write(site.getsitepackages()[0])') \
- && mv /usr/local/lib/gmsh.py ${SP_DIR}/ \
- && mv /usr/local/lib/gmsh*.dist-info ${SP_DIR}/
+    && mv /usr/local/lib/gmsh.py ${SP_DIR}/ \
+    && mv /usr/local/lib/gmsh*.dist-info ${SP_DIR}/
 
 # build h5py from source
 # disable build isolation due to https://github.com/h5py/h5py/issues/2222
 RUN export HDF5_MPI=ON \
- && export HDF5_PKGCONFIG_NAME="hdf5" \
- && python3 -m pip install cython pkgconfig mpi4py \
- && python3 -m pip install --no-cache-dir --no-binary=h5py --no-build-isolation h5py -vv
+    && export HDF5_PKGCONFIG_NAME="hdf5" \
+    && python3 -m pip install cython pkgconfig mpi4py \
+    && python3 -m pip install --no-cache-dir --no-binary=h5py --no-build-isolation h5py -vv
 RUN python3 -m pip install --no-cache-dir meshio
 
 WORKDIR /
