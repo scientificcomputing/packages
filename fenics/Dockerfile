@@ -79,6 +79,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     python3-numpy \
     python3-matplotlib \
     python3-scipy \
+    python3-venv \
     wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
