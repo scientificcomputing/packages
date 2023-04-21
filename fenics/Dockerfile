@@ -87,6 +87,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 
 # Install Python packages (via pip)
 RUN python3 -m pip install --upgrade pip setuptools
+RUN python3 -m pip install Cython==0.29.32
 RUN python3 -m pip install pytest pkgconfig
 RUN python3 -m pip install --no-cache-dir mpi4py
 
