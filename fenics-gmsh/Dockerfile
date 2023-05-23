@@ -54,4 +54,8 @@ RUN export HDF5_MPI=ON \
     && python3 -m pip install --no-cache-dir --no-binary=h5py --no-build-isolation h5py -vv
 RUN python3 -m pip install --no-cache-dir meshio
 
+# Add option to use `jupyter-lab`
+RUN python3 -m pip install --upgrade --no-cache-dir jupyter jupyterlab
+
+EXPOSE 8888/tcp
 WORKDIR /
