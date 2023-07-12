@@ -1,4 +1,4 @@
-FROM ghcr.io/scientificcomputing/fenics:2023-04-21
+FROM ghcr.io/scientificcomputing/fenics:meshview_debug
 
 # Dependency versions
 ARG GMSH_VERSION=4_11_1
