@@ -1,7 +1,7 @@
 # Dependency versions
 ARG PYBIND11_VERSION=2.10.1
 ARG PETSC_VERSION=3.19.3
-ARG SLEPC_VERSION=3.11.1
+ARG SLEPC_VERSION=3.19.1
 ARG UFL_BRANCH="ufl_legacy"
 ARG DOLFIN_BRANCH="dparsons/ufl_legacy"
 ARG FFC_BRANCH="dparsons/ufl_legacy"
