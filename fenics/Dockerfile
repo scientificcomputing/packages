@@ -2,7 +2,7 @@
 ARG PYBIND11_VERSION=2.10.1
 ARG PETSC_VERSION=3.18.6
 ARG SLEPC_VERSION=3.18.3
-ARG UFL_BRANCH="ufl_legacy"
+ARG UFL_BRANCH="main"
 ARG DOLFIN_BRANCH="master"
 ARG FFC_BRANCH="master"
 ARG DIJITSO_BRANCH="master"
@@ -34,7 +34,7 @@ ARG PETSC_SLEPC_OPTFLAGS="-O2"
 # Turn on PETSc and SLEPc debugging. "yes" or "no".
 ARG PETSC_SLEPC_DEBUGGING="no"
 # MPI variant. "mpich" or "openmpi".
-ARG MPI="mpich"
+ARG MPI="openmpi"
 ARG PETSC_VERSION
 ARG SLEPC_VERSION
 ARG PYBIND11_VERSION
@@ -182,12 +182,12 @@ ENV ENV DEB_PYTHON_INSTALL_LAYOUT=deb_system
 
 RUN git clone --branch ${FIAT_BRANCH} --single-branch  https://github.com/FEniCS/fiat.git && \
     git clone --branch ${FFC_BRANCH} --single-branch https://bitbucket.com/fenics-project/ffc.git && \
-    git clone --branch ${UFL_BRANCH} --single-branch https://github.com/FEniCS/ufl.git && \
+    git clone --branch ${UFL_BRANCH} --single-branch https://github.com/FEniCS/ufl-legacy.git && \
     git clone --branch ${DOLFIN_BRANCH} --single-branch https://bitbucket.com/fenics-project/dolfin.git && \
     git clone --branch ${DIJITSO_BRANCH} --single-branch https://bitbucket.com/fenics-project/dijitso.git
 
 RUN cd fiat && python3 -m pip install --no-cache-dir . && \
-    cd ../ufl && python3 -m pip install --no-cache-dir . && \
+    cd ../ufl-legacy && python3 -m pip install --no-cache-dir . && \
     cd ../dijitso && python3 -m pip install --no-cache-dir . && \
     cd ../ffc && python3 -m pip install --no-cache-dir . && \
     cd ../ && python3 -m pip install --no-cache-dir ipython
