@@ -34,7 +34,7 @@ ARG PETSC_SLEPC_OPTFLAGS="-O2"
 # Turn on PETSc and SLEPc debugging. "yes" or "no".
 ARG PETSC_SLEPC_DEBUGGING="no"
 # MPI variant. "mpich" or "openmpi".
-ARG MPI="openmpi"
+ARG MPI="mpich"
 ARG PETSC_VERSION
 ARG SLEPC_VERSION
 ARG PYBIND11_VERSION
