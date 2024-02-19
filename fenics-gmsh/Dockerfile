@@ -1,7 +1,7 @@
-FROM ghcr.io/scientificcomputing/fenics:2023-08-14
+FROM ghcr.io/scientificcomputing/fenics:2024-02-19
 
 # Dependency versions
-ARG GMSH_VERSION=4_11_1
+ARG GMSH_VERSION=4_12_2
 
 WORKDIR /tmp
 
