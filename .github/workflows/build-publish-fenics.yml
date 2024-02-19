@@ -53,7 +53,8 @@ jobs:
       - name: Set up Docker on mac
         if: ${{ startsWith(matrix.runs-on, 'mac') }}
         run: |
-          brew install colima docker
+          brew install docker lima
+          brew install colima
           colima start --cpu 3 --memory 6 --disk 100 --mount-type=sshfs --dns=1.1.1.1
 
       - name: Log in to the Container registry
