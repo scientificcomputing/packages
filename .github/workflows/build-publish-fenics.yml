@@ -60,10 +60,10 @@ jobs:
             org.opencontainers.image.description="Test run"
           images: test-image-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Build AMD docker image
+      - name: Build (FEniCS) AMD docker image
         uses: docker/build-push-action@v5
         with:
-          context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
+          context: "{{defaultContext}}:fenics"
           push: false
           load: true
           platforms: linux/amd64
