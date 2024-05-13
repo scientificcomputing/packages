@@ -64,7 +64,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
-          push: fasle
+          push: false
           load: true
           platforms: linux/amd64 #,linux/arm64
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
