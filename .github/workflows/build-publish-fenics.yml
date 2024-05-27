@@ -18,7 +18,7 @@ on:
         type: string
       image_description:
         description: "Description of package"
-        default: ""
+        default: "Some description"
         type: string
   pull_request:
     branches:
