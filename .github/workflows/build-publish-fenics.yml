@@ -26,6 +26,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: fenics
 
 jobs:
   build-and-push-image:
@@ -51,16 +52,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker (testing)
-        id: meta-testing
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
         uses: docker/metadata-action@v5
         with:
           labels: |
-            org.opencontainers.image.title=${{ github.run_id }}-${{ github.run_attempt }}
-            org.opencontainers.image.description="Test run"
-          images: test-image-${{ github.run_id }}-${{ github.run_attempt }}
+            org.opencontainers.image.title=${{ github.event.inputs.image_name || env.IMAGE_NAME }}
+            org.opencontainers.image.description=${{ github.event.inputs.image_description }}
 
-      - name: Build (FEniCS) AMD docker image
+          images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name || env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.release_tag }}
+
+
+      - name: Build AMD docker image
         uses: docker/build-push-action@v5
         with:
           context: "{{defaultContext}}:fenics"
@@ -69,20 +74,10 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta-testing.outputs.tags }}
           labels: ${{ steps.meta-testing.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name || env.IMAGE_NAME }}:${{ github.event.inputs.release_tag }}
           cache-to: type=inline
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          labels: |
-            org.opencontainers.image.title=${{ github.event.inputs.image_name }}
-            org.opencontainers.image.description=${{ github.event.inputs.image_description }}
-
-          images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name }}
-          tags: |
-            type=raw,value=${{ github.event.inputs.release_tag }}
+     
 
       - name: Trigger circleci build for ARM
         if: ${{ github.event_name == 'workflow_dispatch' }}
