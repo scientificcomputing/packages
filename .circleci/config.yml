@@ -62,8 +62,7 @@ jobs:
       - run:
           name: merge manifests to publish multi-arch build
           command: |
-            docker manifest create --insecure "$IMAGE" --amend "$IMAGE" --amend "${ARM_IMAGE}"
-            docker manifest push "$IMAGE"
+            docker buildx imagetools create --append "$IMAGE" --append "${ARM_IMAGE}" --tag "$IMAGE"
 
       # deleting manifest doesn't work yet, but at least the temporary arm package is private
       # - run:

@@ -99,6 +99,7 @@ jobs:
         with:
           context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
           push: true
+          provenance: false  # removes unknown/unknown manifest
           platforms: linux/amd64 #,linux/arm64
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
           labels: ${{ steps.meta.outputs.labels }}
