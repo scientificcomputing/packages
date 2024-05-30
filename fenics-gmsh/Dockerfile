@@ -1,4 +1,4 @@
-FROM ghcr.io/scientificcomputing/fenics:2024-05-13
+FROM ghcr.io/scientificcomputing/fenics:2024-05-28
 
 # Dependency versions
 ARG GMSH_VERSION=4_12_2
