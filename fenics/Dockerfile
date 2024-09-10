@@ -18,7 +18,7 @@ ARG DOLFIN_CMAKE_CXX_FLAGS="-O2"
 
 ########################################
 
-FROM ubuntu:22.04 as fenics-base
+FROM ubuntu:24.04 as fenics-base
 # Usage of pip setuptools
 ENV DEB_PYTHON_INSTALL_LAYOUT=deb_system
 
@@ -84,10 +84,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+ENV VIRTUAL_ENV /fenics-env
+ENV PATH /fenics-env/bin:$PATH
+RUN python3 -m venv ${VIRTUAL_ENV}
 
 # Install Python packages (via pip)
-RUN python3 -m pip install --upgrade pip setuptools
-RUN python3 -m pip install Cython==0.29.32
+RUN python3 -m pip install --upgrade pip "setuptools<=71.0.0"
 RUN python3 -m pip install pytest pkgconfig
 RUN python3 -m pip install --no-cache-dir mpi4py
 
@@ -104,13 +106,16 @@ RUN python3 -m pip install --no-cache-dir pybind11==${PYBIND11_VERSION} && \
 
 
 # Install PETSc with real and complex types
+WORKDIR ${PETSC_DIR}
+
 RUN apt-get -qq update && \
     apt-get -y install bison flex && \
     wget -nc --quiet http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-${PETSC_VERSION}.tar.gz -O petsc-${PETSC_VERSION}.tar.gz && \
-    mkdir -p ${PETSC_DIR} && tar -xf petsc-${PETSC_VERSION}.tar.gz -C ${PETSC_DIR} --strip-components 1 && \
-    cd ${PETSC_DIR} && \
-    # Real, 32-bit int
-    python3 ./configure \
+    tar -xf petsc-${PETSC_VERSION}.tar.gz -C ${PETSC_DIR} --strip-components 1
+
+
+# Real, 32-bit int
+RUN python3 ./configure \
     --COPTFLAGS=${PETSC_SLEPC_OPTFLAGS} \
     --CXXOPTFLAGS=${PETSC_SLEPC_OPTFLAGS} \
     --FOPTFLAGS=${PETSC_SLEPC_OPTFLAGS} \
@@ -129,12 +134,17 @@ RUN apt-get -qq update && \
     --download-superlu \
     --download-superlu_dist \
     --with-scalar-type=real && \
-    make ${MAKEFLAGS} all && \
-    # Install petsc4py
-    cd src/binding/petsc4py && \
-    python3 -m pip install --no-cache-dir . && \
-    # Cleanup
-    apt-get -y purge bison flex && \
+    make ${MAKEFLAGS} all
+
+
+# Install petsc4py
+WORKDIR ${PETSC_DIR}/src/binding/petsc4py
+RUN python3 -m pip install "Cython==0.29.36" "numpy<2.0.0" --upgrade --no-cache-dir
+RUN python3 -m pip install --no-cache-dir --no-build-isolation . -v
+
+# Cleanup
+WORKDIR /tmp  
+RUN apt-get -y purge bison flex && \
     apt-get -y autoremove && \
     apt-get clean && \
     rm -rf \
@@ -158,7 +168,7 @@ RUN wget -nc --quiet https://slepc.upv.es/download/distrib/slepc-${SLEPC_VERSION
     make SLEPC_DIR=${SLEPC_DIR} && \
     # Install slepc4py
     cd src/binding/slepc4py && \
-    python3 -m pip install --no-cache-dir . && \
+    python3 -m pip install --no-build-isolation --no-cache-dir . && \
     rm -rf ${SLEPC_DIR}/CTAGS ${SLEPC_DIR}/TAGS ${SLEPC_DIR}/docs ${SLEPC_DIR}/src/ ${SLEPC_DIR}/**/obj/ ${SLEPC_DIR}/**/test/ && \
     rm -rf /tmp/*
 
@@ -186,17 +196,16 @@ RUN git clone --branch ${FIAT_BRANCH} --single-branch  https://github.com/FEniCS
     git clone --branch ${DOLFIN_BRANCH} --single-branch https://bitbucket.com/fenics-project/dolfin.git && \
     git clone --branch ${DIJITSO_BRANCH} --single-branch https://bitbucket.com/fenics-project/dijitso.git
 
-RUN cd fiat && python3 -m pip install --no-cache-dir . && \
-    cd ../ufl-legacy && python3 -m pip install --no-cache-dir . && \
-    cd ../dijitso && python3 -m pip install --no-cache-dir . && \
-    cd ../ffc && python3 -m pip install --no-cache-dir . && \
-    cd ../ && python3 -m pip install --no-cache-dir ipython
+RUN cd fiat && python3 -m pip install --no-build-isolation --no-cache-dir . && \
+    cd ../ufl-legacy && python3 -m pip install --no-build-isolation --no-cache-dir . && \
+    cd ../dijitso && python3 -m pip install --no-build-isolation --no-cache-dir . && \
+    cd ../ffc && python3 -m pip install --no-build-isolation --no-cache-dir . && \
+    cd ../ && python3 -m pip install --no-build-isolation --no-cache-dir ipython
 
 RUN cd dolfin && \
     cmake -G Ninja -DCMAKE_BUILD_TYPE=${DOLFIN_CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${DOLFIN_CMAKE_CXX_FLAGS} -B build . && \
     ninja ${MAKEFLAGS} install -C build
 
-RUN python3 -m pip install --no-dependencies ./dolfin/python
+RUN python3 -m pip install --no-dependencies --no-build-isolation ./dolfin/python
 
 WORKDIR /root
-RUN rm -rf /src
