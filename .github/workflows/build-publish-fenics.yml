@@ -27,10 +27,26 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: fenics
+  TAG: latest
 
 jobs:
-  build-and-push-image:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: arm64
+            machine: ubuntu-24.04-arm
+          - platform: amd64
+            machine: ubuntu-24.04
+
+    runs-on: ${{ matrix.machine }}
+
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      image_name: ${{ steps.image.outputs.image_name }}
+      image_tag: ${{ steps.image.outputs.image_tag }}
+      tag: ${{ steps.image.outputs.tag }}
+
     permissions:
       contents: read
       packages: write
@@ -38,9 +54,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -52,56 +65,109 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Output image
+        id: image
+        # store image name, tag in variables
+        run: |
+          image_name=${{ github.event.inputs.image_name || env.IMAGE_NAME }}
+          image="${{ env.REGISTRY }}/${{ github.repository_owner }}/${image_name}"
+          tag="${{ github.event.inputs.release_tag || env.TAG }}"
+          image_tag="${image}:${tag}"
+          echo "image_name=${image_name}" >> "${GITHUB_OUTPUT}"
+          echo image="${image}" >> "${GITHUB_OUTPUT}"
+          echo tag="${tag}" >> "${GITHUB_OUTPUT}"
+          echo image_tag="${image_tag}" >> "${GITHUB_OUTPUT}"
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           labels: |
-            org.opencontainers.image.title=${{ github.event.inputs.image_name || env.IMAGE_NAME }}
+            org.opencontainers.image.title=${{ steps.image.outputs.image_name }}
             org.opencontainers.image.description=${{ github.event.inputs.image_description }}
 
-          images: ${{ github.GITHUB_REPOSITORY }}/${{ github.event.inputs.image_name || env.IMAGE_NAME }}
+          images: ${{ steps.image.outputs.image }}
           tags: |
-            type=raw,value=${{ github.event.inputs.release_tag }}
-
-
-      - name: Build AMD docker image
+            type=raw,value=${{ steps.image.outputs.tag }}
+            type=raw,value=${{ steps.image.outputs.tag }}-${{ matrix.platform }}
+      
+      - name: Build ${{ matrix.platform }} docker image
         uses: docker/build-push-action@v5
         with:
-          context: "{{defaultContext}}:fenics"
+          context: "{{defaultContext}}:${{ steps.image.outputs.image_name }}"
           push: false
           load: true
-          platforms: linux/amd64
-          tags: ${{ steps.meta-testing.outputs.tags }}
-          labels: ${{ steps.meta-testing.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name || env.IMAGE_NAME }}:${{ github.event.inputs.release_tag }}
+          platforms: linux/${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ steps.image.outputs.image_tag }}
           cache-to: type=inline
-
-     
-
-      - name: Trigger circleci build for ARM
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          CIRCLE_RESP=$(curl \
-            --request POST \
-            --url https://circleci.com/api/v2/project/github/scientificcomputing/packages/pipeline \
-            -u "${{ secrets.CIRCLECI_TOKEN }}:" \
-            --header "Content-Type: application/json" \
-            --data '{ "parameters": ${{ toJSON(github.event.inputs) }}, "branch": "${{ github.ref_name }}" }'
-          )
-          echo $CIRCLE_RESP
-
-          echo "[CircleCI Job](https://app.circleci.com/pipelines/github/scientificcomputing/packages/$(echo $CIRCLE_RESP | jq -r .number))" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build and push Docker image
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
-          context: "{{defaultContext}}:${{ github.event.inputs.image_name }}"
+          context: "{{defaultContext}}:${{ steps.image.outputs.image_name }}"
           push: true
           provenance: false  # removes unknown/unknown manifest
-          platforms: linux/amd64 #,linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
+          platforms: linux/${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.release_tag }}
+          cache-from: type=registry,ref=${{ steps.image.outputs.image_tag }}
           cache-to: type=inline
+
+
+  publish-multiarch:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    needs:
+      - build
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: merge manifests to publish multi-arch image
+        run: |
+            docker buildx imagetools create --append "${{ needs.build.outputs.image_tag }}-amd64" "${{ needs.build.outputs.image_tag }}-arm64" --tag "${{ needs.build.outputs.image_tag }}"
+      
+      - name: delete intermediate images
+        if: "false" # cannot apparently get DELETE permissions with the default token
+        shell: python
+        run: |
+          import os
+          import requests
+          
+          s = requests.Session()
+          s.headers = {"Authorization": "Bearer ${{ secrets.GITHUB_TOKEN }}"}
+          owner_name = "${{ github.repository_owner }}"
+          owner_type = "orgs" if owner_name == "scientificcomputing" else "users"
+          
+          versions_url = f"https://api.github.com/{owner_type}/{owner_name}/packages/container/${{needs.build.outputs.image_name}}/versions?state=active"
+          print(versions_url)
+          versions = s.get(versions_url).json()
+          print(f"Found {len(versions)} versions")
+          tag_base = "${{ needs.build.outputs.tag }}"
+          tags_to_delete = {f"{tag_base}-{plat}" for plat in ("amd64", "arm64") }
+          for version in versions:
+              tags = version['metadata']['container']['tags']
+              if set(tags).intersection(tags_to_delete)or not tags:
+                version_id = version["id"]
+                print(f"Deleting version {version_id}: {tags}")
+                print(f"{versions_url}/{version_id}")
+                r = s.delete(f"{versions_url}/{version_id}")
+                
+                print(r.status_code)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
