@@ -18,7 +18,7 @@ ARG DOLFIN_CMAKE_CXX_FLAGS="-O2"
 
 ########################################
 
-FROM ubuntu:24.04 as fenics-base
+FROM ubuntu:24.04 AS fenics-base
 # Usage of pip setuptools
 ENV DEB_PYTHON_INSTALL_LAYOUT=deb_system
 
@@ -84,8 +84,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ENV VIRTUAL_ENV /fenics-env
-ENV PATH /fenics-env/bin:$PATH
+ENV VIRTUAL_ENV=/fenics-env
+ENV PATH=/fenics-env/bin:$PATH
 RUN python3 -m venv ${VIRTUAL_ENV}
 
 # Install Python packages (via pip)
@@ -173,7 +173,7 @@ RUN wget -nc --quiet https://slepc.upv.es/download/distrib/slepc-${SLEPC_VERSION
     rm -rf /tmp/*
 
 
-FROM fenics-base as fenics-end-user
+FROM fenics-base AS fenics-end-user
 LABEL description="End user image"
 
 ARG FIAT_BRANCH
@@ -188,7 +188,7 @@ ARG MAKEFLAGS
 WORKDIR /src
 ENV PETSC_DIR=/usr/local/petsc
 ENV PETSC_ARCH=linux-gnu-real-32
-ENV ENV DEB_PYTHON_INSTALL_LAYOUT=deb_system
+ENV DEB_PYTHON_INSTALL_LAYOUT=deb_system
 
 RUN git clone --branch ${FIAT_BRANCH} --single-branch  https://github.com/FEniCS/fiat.git && \
     git clone --branch ${FFC_BRANCH} --single-branch https://bitbucket.com/fenics-project/ffc.git && \
@@ -201,7 +201,7 @@ RUN cd fiat && python3 -m pip install --no-build-isolation --no-cache-dir . && \
     cd ../dijitso && python3 -m pip install --no-build-isolation --no-cache-dir . && \
     cd ../ffc && python3 -m pip install --no-build-isolation --no-cache-dir . && \
     cd ../ && python3 -m pip install --no-build-isolation --no-cache-dir ipython
-
+RUN python3 -m pip install --no-build-isolation "sympy<1.14"
 RUN cd dolfin && \
     cmake -G Ninja -DCMAKE_BUILD_TYPE=${DOLFIN_CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${DOLFIN_CMAKE_CXX_FLAGS} -B build . && \
     ninja ${MAKEFLAGS} install -C build
